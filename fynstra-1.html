@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fynstra – Image Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.2/browser-image-compression.js"></script>
+<style>
+:root{
+  --bg:#0b0c10;--surface:#13151c;--surface2:#1c1f2b;
+  --accent:#e8ff47;--accent2:#47c8ff;
+  --text:#f0f2ff;--muted:#7a7f99;--border:#252836;--card:#161924;
+  --radius:14px;--rsm:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden;}
+
+/* ── NAV ── */
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:rgba(11,12,16,.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:300;backdrop-filter:blur(14px);}
+.logo{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-1px;color:var(--text);flex-shrink:0;}
+.logo span{color:var(--accent);}
+.nav-links{display:flex;gap:20px;flex-wrap:wrap;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;white-space:nowrap;}
+.nav-links a:hover{color:var(--accent);}
+
+/* Hamburger */
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px;}
+.ham span{width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s;}
+.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+/* Mobile nav drawer */
+.mob-nav{display:none;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--border);padding:0;}
+.mob-nav.open{display:flex;}
+.mob-nav a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;padding:14px 20px;border-bottom:1px solid var(--border);transition:color .2s,background .2s;}
+.mob-nav a:hover{color:var(--accent);background:rgba(232,255,71,.04);}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:70px 20px 44px;position:relative;}
+.hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(600px,100%);height:300px;background:radial-gradient(ellipse at center,rgba(232,255,71,.08),transparent 70%);pointer-events:none;}
+.hero-badge{display:inline-block;background:rgba(232,255,71,.1);border:1px solid rgba(232,255,71,.25);color:var(--accent);font-size:11px;font-weight:700;letter-spacing:1px;padding:5px 14px;border-radius:50px;margin-bottom:16px;text-transform:uppercase;}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(28px,5.5vw,62px);font-weight:800;line-height:1.07;letter-spacing:-1.5px;max-width:640px;margin:0 auto 14px;}
+.hero h1 .hl{color:var(--accent);}
+.hero p{color:var(--muted);font-size:clamp(14px,2vw,16px);max-width:440px;margin:0 auto 26px;line-height:1.7;}
+.search-bar{display:flex;align-items:center;gap:8px;max-width:420px;margin:0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:50px;padding:6px 6px 6px 16px;transition:border-color .2s;}
+.search-bar:focus-within{border-color:var(--accent);}
+.search-bar input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;}
+.search-bar input::placeholder{color:var(--muted);}
+.search-bar button{background:var(--accent);color:#000;border:none;border-radius:50px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .15s;white-space:nowrap;}
+.search-bar button:hover{opacity:.87;}
+
+/* ── MAIN / SECTIONS ── */
+main{padding:6px 18px 60px;max-width:1080px;margin:0 auto;}
+.sh{display:flex;align-items:center;gap:11px;margin:42px 0 16px;}
+.si{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.si-s{background:rgba(180,130,255,.13);}
+.si-p{background:rgba(232,255,71,.12);}
+.si-f{background:rgba(71,200,255,.12);}
+.si-id{background:rgba(255,120,71,.12);}
+.sh h2{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;}
+.sh p{color:var(--muted);font-size:12px;margin-top:2px;}
+
+/* ── TOOL GRID ── */
+.tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.tc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .22s;position:relative;overflow:hidden;}
+.tc::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,255,71,.04),transparent);opacity:0;transition:opacity .22s;}
+.tc:hover{border-color:rgba(232,255,71,.35);transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.3);}
+.tc:hover::after{opacity:1;}
+.ti{font-size:22px;margin-bottom:8px;}
+.tn{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.td{color:var(--muted);font-size:11.5px;line-height:1.5;}
+.tb{display:inline-block;background:rgba(232,255,71,.1);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:50px;margin-top:6px;text-transform:uppercase;}
+.tb-b{background:rgba(71,200,255,.12)!important;color:var(--accent2)!important;}
+.tb-o{background:rgba(255,120,71,.12)!important;color:#ff7847!important;}
+
+/* ── MODAL ── */
+.mo{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);backdrop-filter:blur(7px);align-items:center;justify-content:center;padding:12px;}
+.mo.open{display:flex;}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:760px;max-height:94vh;overflow-y:auto;position:relative;animation:mIn .22s ease;}
+@keyframes mIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.mc{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;z-index:2;}
+.mc:hover{color:var(--text);}
+.md h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px;padding-right:30px;}
+.md .sub{color:var(--muted);font-size:12px;margin-bottom:18px;}
+
+/* ── STEPS ── */
+.steps{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap;}
+.step{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11px;color:var(--muted);}
+.step.on{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.07);}
+.sn{width:16px;height:16px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0;}
+.step.on .sn{background:var(--accent);color:#000;}
+
+/* ── UPLOAD ZONE ── */
+.uz{border:2px dashed var(--border);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:13px;}
+.uz:hover,.uz.dv{border-color:var(--accent);background:rgba(232,255,71,.04);}
+.uz .ui{font-size:28px;margin-bottom:7px;}
+.uz h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px;}
+.uz p{color:var(--muted);font-size:12px;}
+
+/* ── FORM ── */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;margin-bottom:13px;}
+.fg label{display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
+.fg select,.fg input[type=number],.fg input[type=range]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
+.fg select:focus,.fg input:focus{border-color:var(--accent);}
+
+/* ── BUTTONS ── */
+.br{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.btn{padding:9px 16px;border-radius:50px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:.3px;transition:all .18s;white-space:nowrap;}
+.ba{background:var(--accent);color:#000;}.ba:hover{opacity:.87;}
+.bo{background:none;border:1px solid var(--border);color:var(--text);}.bo:hover{border-color:var(--muted);}
+.bp{background:rgba(71,200,255,.15);color:var(--accent2);border:1px solid rgba(71,200,255,.3);}.bp:hover{background:rgba(71,200,255,.25);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── PROGRESS & RESULT ── */
+.pw{margin:12px 0;display:none;}
+.pl{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+.pb{height:4px;background:var(--border);border-radius:4px;overflow:hidden;}
+.pf{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .25s;}
+.rb{background:var(--surface2);border-radius:var(--rsm);border:1px solid var(--border);padding:13px;margin-top:11px;display:none;font-size:13px;color:var(--muted);line-height:1.7;}
+.ri{max-width:100%;border-radius:7px;margin-top:9px;border:1px solid var(--border);display:block;}
+
+/* ── COLOR SWATCHES ── */
+.cs{width:27px;height:27px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;}
+.cs:hover{transform:scale(1.15);}
+.ca{border-color:var(--accent)!important;transform:scale(1.18);}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:24px 16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin-top:32px;}
+footer span{color:var(--accent);}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+════════════════════════════════ */
+
+/* Tablet: 641–1024px */
+@media(max-width:1024px){
+  nav{padding:13px 20px;}
+  main{padding:6px 16px 50px;}
+  .tg{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
+}
+
+/* Mobile: ≤640px */
+@media(max-width:640px){
+  /* Nav */
+  nav{padding:12px 16px;}
+  .nav-links{display:none;}
+  .ham{display:flex;}
+
+  /* Hero */
+  .hero{padding:40px 16px 32px;}
+  .hero h1{letter-spacing:-1px;}
+  .hero p{font-size:14px;}
+  .search-bar{max-width:100%;}
+  .hero-badge{font-size:10px;padding:4px 11px;}
+
+  /* Main */
+  main{padding:4px 12px 48px;}
+  .sh{margin:32px 0 13px;}
+  .sh h2{font-size:17px;}
+
+  /* Tool grid — 2 columns on mobile */
+  .tg{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .tc{padding:13px 11px;}
+  .ti{font-size:20px;margin-bottom:6px;}
+  .tn{font-size:12px;}
+  .td{font-size:11px;}
+
+  /* Modal — full screen on mobile */
+  .mo{padding:0;align-items:flex-end;}
+  .md{border-radius:18px 18px 0 0;max-height:96vh;padding:18px 14px 24px;}
+  .md h2{font-size:16px;}
+
+  /* Steps — scrollable row */
+  .steps{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;}
+  .steps::-webkit-scrollbar{display:none;}
+  .step{flex-shrink:0;font-size:10.5px;padding:5px 9px;}
+
+  /* Upload zone */
+  .uz{padding:22px 12px;}
+  .uz h3{font-size:13px;}
+
+  /* Form grid — 2 cols on mobile */
+  .sg{grid-template-columns:repeat(2,1fr);}
+
+  /* Buttons — full width on very small screens */
+  .btn{font-size:11.5px;padding:9px 14px;}
+  .br{gap:6px;}
+}
+
+/* Very small: ≤380px */
+@media(max-width:380px){
+  .tg{grid-template-columns:1fr 1fr;}
+  .tc{padding:11px 9px;}
+  .tn{font-size:11.5px;}
+  .td{display:none;}
+  .sg{grid-template-columns:1fr;}
+}
+
+/* Passport BG panel — stack on small screens */
+@media(max-width:520px){
+  .p-bg-row{flex-direction:column!important;}
+  .p-bg-row > div{min-width:unset!important;width:100%!important;}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Fyn<span>stra</span></div>
+  <div class="nav-links">
+    <a href="#mu">Most Used</a><a href="#ipdf">Image to PDF</a>
+    <a href="#fmt">Format Conversions</a><a href="#pid">Passport & ID</a>
+  </div>
+  <button class="ham" id="hamBtn" onclick="toggleMobNav()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mob-nav" id="mobNav">
+  <a href="#mu" onclick="closeMobNav()">⭐ Most Used</a>
+  <a href="#ipdf" onclick="closeMobNav()">📄 Image to PDF</a>
+  <a href="#fmt" onclick="closeMobNav()">🔄 Format Conversions</a>
+  <a href="#pid" onclick="closeMobNav()">🪪 Passport & ID</a>
+</div>
+<div class="hero">
+  <div class="hero-badge">✦ 100% Free · No Sign-up · Files Stay in Your Browser</div>
+  <h1>Powerful Image Tools.<br><span class="hl">Zero Hassle.</span></h1>
+  <p>Convert, compress, resize & create passport photos — all in your browser. Your files never leave your device.</p>
+  <div class="search-bar">
+    <input type="text" id="sI" placeholder="Search tools…" oninput="sT(this.value)">
+    <button onclick="sT(document.getElementById('sI').value)">Search</button>
+  </div>
+</div>
+<main>
+
+<div class="sh" id="mu"><div class="si si-s">⭐</div><div><h2>Most Used Tools</h2><p>Top picks everyone uses daily</p></div></div>
+<div class="tg">
+  <div class="tc" onclick="oT('passport')"><div class="ti">📸</div><div class="tn">Passport Photo Maker</div><div class="td">Crop, remove background, choose color, print-ready layout.</div><span class="tb tb-o">🔥 #1</span></div>
+  <div class="tc" onclick="oT('reduceKB')"><div class="ti">🗜️</div><div class="tn">Reduce Image Size in KB</div><div class="td">Compress to your exact target KB.</div><span class="tb">Popular</span></div>
+  <div class="tc" onclick="oT('resizePx')"><div class="ti">📐</div><div class="tn">Resize Image by Pixel</div><div class="td">Resize to exact pixel dimensions.</div></div>
+  <div class="tc" onclick="oT('signature')"><div class="ti">✍️</div><div class="tn">Generate Signature</div><div class="td">Draw signature on canvas & download PNG.</div><span class="tb tb-b">New</span></div>
+  <div class="tc" onclick="oT('increaseKB')"><div class="ti">📈</div><div class="tn">Increase Image Size in KB</div><div class="td">Increase file size to meet minimum requirements.</div></div>
+  <div class="tc" onclick="oT('enhance')"><div class="ti">✨</div><div class="tn">AI Photo Enhancer</div><div class="td">Sharpen, brighten & enhance photo quality.</div><span class="tb tb-b">AI</span></div>
+  <div class="tc" onclick="oT('resizeCm')"><div class="ti">📏</div><div class="tn">Resize Image in CM</div><div class="td">Set dimensions precisely in centimeters.</div></div>
+  <div class="tc" onclick="oT('r3545')"><div class="ti">🪪</div><div class="tn">Resize Image (3.5×4.5cm)</div><div class="td">Quick resize to Indian passport photo size.</div><span class="tb tb-o">ID Size</span></div>
+</div>
+
+<div class="sh" id="ipdf"><div class="si si-p">📄</div><div><h2>Image to PDF</h2><p>Convert & manage image-to-PDF workflows</p></div></div>
+<div class="tg">
+  <div class="tc" onclick="oT('img2pdf')"><div class="ti">🖼️</div><div class="tn">Image to PDF</div><div class="td">Convert JPG, PNG, WEBP to PDF.</div><span class="tb">Popular</span></div>
+  <div class="tc" onclick="oT('pdf2jpg')"><div class="ti">📑</div><div class="tn">PDF to JPG</div><div class="td">Extract each PDF page as JPG.</div></div>
+  <div class="tc" onclick="oT('j2p50')"><div class="ti">⚡</div><div class="tn">JPG to PDF (Under 50KB)</div><div class="td">Compress & convert, output ≤50KB.</div></div>
+  <div class="tc" onclick="oT('j2p100')"><div class="ti">📉</div><div class="tn">JPG to PDF (Under 100KB)</div><div class="td">Compress & convert, output ≤100KB.</div></div>
+  <div class="tc" onclick="oT('j2p300')"><div class="ti">🗜️</div><div class="tn">JPG to PDF (Under 300KB)</div><div class="td">Compress & convert, output ≤300KB.</div></div>
+  <div class="tc" onclick="oT('j2p500')"><div class="ti">💾</div><div class="tn">JPG to PDF (Under 500KB)</div><div class="td">Good quality, output ≤500KB.</div></div>
+</div>
+
+<div class="sh" id="fmt"><div class="si si-f">🔄</div><div><h2>Format Conversions</h2><p>Convert between popular image formats</p></div></div>
+<div class="tg">
+  <div class="tc" onclick="oT('ocr')"><div class="ti">🔤</div><div class="tn">OCR – Image to Text</div><div class="td">Extract text using Tesseract.js AI.</div><span class="tb tb-b">AI</span></div>
+  <div class="tc" onclick="oT('img2jpg')"><div class="ti">🖼️</div><div class="tn">Image to JPG</div><div class="td">Convert PNG, WEBP, BMP to JPG.</div></div>
+  <div class="tc" onclick="oT('webp2jpg')"><div class="ti">🌐</div><div class="tn">WEBP to JPG</div><div class="td">Convert WEBP images to JPG.</div></div>
+  <div class="tc" onclick="oT('jpeg2png')"><div class="ti">🎨</div><div class="tn">JPEG to PNG</div><div class="td">Convert JPEG to lossless PNG.</div></div>
+  <div class="tc" onclick="oT('png2jpeg')"><div class="ti">🔃</div><div class="tn">PNG to JPEG</div><div class="td">Convert PNG to JPEG, smaller size.</div></div>
+  <div class="tc" onclick="oT('jpg2text')"><div class="ti">📝</div><div class="tn">JPG to Text</div><div class="td">Extract text from JPG via OCR.</div></div>
+  <div class="tc" onclick="oT('png2text')"><div class="ti">📋</div><div class="tn">PNG to Text</div><div class="td">Extract text from PNG via OCR.</div></div>
+</div>
+
+<div class="sh" id="pid"><div class="si si-id">🪪</div><div><h2>Passport & ID Photo Sizes</h2><p>Print-ready official photos</p></div></div>
+<div class="tg">
+  <div class="tc" onclick="oT('passport')"><div class="ti">📸</div><div class="tn">Passport Photo Maker</div><div class="td">Full tool: crop, bg remove, color, paper size, print.</div><span class="tb tb-o">Print Ready</span></div>
+  <div class="tc" onclick="oT('r3545')"><div class="ti">🪪</div><div class="tn">3.5cm × 4.5cm</div><div class="td">Standard Indian passport photo.</div></div>
+  <div class="tc" onclick="oT('r35mm')"><div class="ti">📐</div><div class="tn">35mm × 45mm</div><div class="td">UK & EU standard passport photo.</div></div>
+  <div class="tc" onclick="oT('r2x2')"><div class="ti">🇺🇸</div><div class="tn">2 × 2 Inch</div><div class="td">US passport & visa standard.</div></div>
+  <div class="tc" onclick="oT('r4x6')"><div class="ti">🖼️</div><div class="tn">4 × 6 Inch</div><div class="td">Standard print photo for IDs.</div></div>
+  <div class="tc" onclick="oT('r600')"><div class="ti">🟦</div><div class="tn">600 × 600 Pixels</div><div class="td">Square photo for online portals.</div></div>
+</div>
+
+</main>
+<footer>© 2024 <span>Fynstra</span> · All processing in your browser · Files never leave your device</footer>
+
+<!-- UNIVERSAL TOOL MODAL -->
+<div class="mo" id="TM">
+  <div class="md" id="TMI">
+    <button class="mc" onclick="cT()">×</button>
+    <h2 id="TMH"></h2><p class="sub" id="TMS"></p>
+    <div id="TMB"></div>
+  </div>
+</div>
+
+<!-- PASSPORT MODAL -->
+<div class="mo" id="PM">
+<div class="md" style="max-width:840px;">
+  <button class="mc" onclick="cP()">×</button>
+  <h2>📸 Passport Photo Maker</h2>
+  <p class="sub">Upload → Crop → Background → Print</p>
+  <div class="steps">
+    <div class="step on" id="ps1"><div class="sn">1</div>Upload</div>
+    <div class="step" id="ps2"><div class="sn">2</div>Crop</div>
+    <div class="step" id="ps3"><div class="sn">3</div>Background</div>
+    <div class="step" id="ps4"><div class="sn">4</div>Print</div>
+  </div>
+  <!-- Upload -->
+  <div id="pU">
+    <div class="uz" id="pDZ" onclick="document.getElementById('pFI').click()"
+      ondragover="event.preventDefault();this.classList.add('dv')"
+      ondragleave="this.classList.remove('dv')"
+      ondrop="pDrop(event)">
+      <div class="ui">📁</div><h3>Drop photo here or click to upload</h3><p>JPG, PNG, WEBP — max 15MB</p>
+    </div>
+    <input type="file" id="pFI" accept="image/*" style="display:none" onchange="pLoad(event)">
+  </div>
+  <!-- Crop -->
+  <div id="pC" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:11px;">
+      <div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;margin-bottom:2px;">✂️ Crop Your Photo</div><div style="color:var(--muted);font-size:11.5px;">Drag yellow handles to adjust. Keep face centered.</div></div>
+      <div class="br" style="margin-top:0"><button class="btn ba" onclick="pAC()">Apply Crop →</button><button class="btn bo" onclick="pReset()">← Re-upload</button></div>
+    </div>
+    <canvas id="CC" style="max-width:100%;border-radius:8px;border:1px solid var(--border);cursor:crosshair;display:block;touch-action:none;"></canvas>
+  </div>
+  <!-- Background -->
+  <div id="pB" style="display:none">
+    <div class="p-bg-row" style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:170px;"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:7px;">Preview</div><canvas id="BC" style="max-width:100%;border-radius:8px;border:1px solid var(--border);background:#fff;display:block;"></canvas></div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:11px;">🎨 Background</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px;margin-bottom:11px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+            <span style="font-weight:600;font-size:12.5px;">Remove Background</span>
+            <label style="position:relative;display:inline-block;width:38px;height:20px;cursor:pointer;">
+              <input type="checkbox" id="BGT" style="opacity:0;width:0;height:0" onchange="pTBG()">
+              <span id="TS" style="position:absolute;inset:0;background:var(--border);border-radius:20px;transition:.3s"></span>
+              <span id="TK" style="position:absolute;left:3px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.3s"></span>
+            </label>
+          </div>
+          <div style="color:var(--muted);font-size:11px;">Corner-sampling background removal.</div>
+          <div id="BGS" style="display:none;margin-top:5px;font-size:11px;color:var(--accent);">⏳ Removing…</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px;">
+          <div style="font-weight:600;font-size:12.5px;margin-bottom:8px;">Background Color</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <div class="cs ca" style="background:#fff" onclick="pSBG('#ffffff',this)"></div>
+            <div class="cs" style="background:#4a90d9" onclick="pSBG('#4a90d9',this)"></div>
+            <div class="cs" style="background:#ccc" onclick="pSBG('#cccccc',this)"></div>
+            <div class="cs" style="background:#d9534a" onclick="pSBG('#d9534a',this)"></div>
+            <div class="cs" style="background:#f5f0e8;border:1px solid #ddd" onclick="pSBG('#f5f0e8',this)"></div>
+            <div class="cs" style="background:#1a3a2a" onclick="pSBG('#1a3a2a',this)"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <label style="font-size:11.5px;color:var(--muted);">Custom:</label>
+            <input type="color" id="CBC" value="#ffffff" style="width:32px;height:24px;border:none;border-radius:6px;cursor:pointer;background:none;padding:0" oninput="pSBG(this.value,null)">
+          </div>
+        </div>
+        <div class="br"><button class="btn ba" onclick="pGS()">✅ Apply →</button><button class="btn bo" onclick="pSh('pC',2)">← Re-crop</button></div>
+      </div>
+    </div>
+  </div>
+  <!-- Settings + Preview -->
+  <div id="pS" style="display:none">
+    <div class="sg">
+      <div class="fg"><label>Photo Size</label><select id="PSZ" onchange="pGP()"><option value="3.5x4.5cm">3.5×4.5cm (India)</option><option value="35x45mm">35×45mm (EU)</option><option value="2x2inch">2×2 inch (US)</option><option value="3x4inch">3×4 inch</option></select></div>
+      <div class="fg"><label>Paper Size</label><select id="PPR" onchange="pGP()"><option value="A4">A4</option><option value="4x6">4×6 inch</option><option value="5x7">5×7 inch</option><option value="letter">Letter</option><option value="A5">A5</option></select></div>
+      <div class="fg"><label>Copies</label><select id="PC" onchange="pGP()"><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="9">9</option><option value="12">12</option></select></div>
+    </div>
+    <div class="br" style="margin-bottom:12px"><button class="btn bo" onclick="pSh('pB',3)">← Edit BG</button></div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;margin-bottom:7px;">🖨️ Print Preview</div>
+    <div id="previewInfo" style="font-size:11.5px;color:var(--muted);margin-bottom:6px;"></div>
+    <canvas id="PVC" style="max-width:100%;border-radius:8px;border:1px solid var(--border);display:block;"></canvas>
+    <div class="br">
+      <button class="btn bp" onclick="pPrint()">🖨️ Print Now</button>
+      <button class="btn ba" onclick="pDL()">⬇️ Download PNG</button>
+      <button class="btn bo" onclick="pReset()">🔄 Start Over</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── PDF.js worker ──
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── Search ──
+function sT(q){q=q.toLowerCase().trim();document.querySelectorAll('.tc').forEach(c=>{c.style.display=(!q||c.innerText.toLowerCase().includes(q))?'':'none';});}
+
+// ── Helpers ──
+function rFI(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>{const i=new Image();i.onload=()=>res(i);i.src=e.target.result;};r.readAsDataURL(file);});}
+function i2c(img,w,h){const c=document.createElement('canvas');c.width=w||img.naturalWidth;c.height=h||img.naturalHeight;c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;}
+function c2b(c,t,q){return new Promise(r=>c.toBlob(r,t||'image/jpeg',q||0.93));}
+function dlB(b,n){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);}
+function shPW(id,p,lbl){const w=document.getElementById('pw_'+id),f=document.getElementById('pf_'+id);if(!w)return;w.style.display='block';w.querySelector('.pl').textContent=lbl||'Processing…';f.style.width=p+'%';}
+function hiPW(id){const w=document.getElementById('pw_'+id);if(w)setTimeout(()=>w.style.display='none',600);}
+function shR(id,html){const r=document.getElementById('res_'+id);if(!r)return;r.style.display='block';r.innerHTML=html;}
+
+function uiHTML(id,accept,fn,hint){
+  return `<div class="uz" onclick="document.getElementById('${id}').click()"
+    ondragover="event.preventDefault();this.classList.add('dv')"
+    ondragleave="this.classList.remove('dv')"
+    ondrop="gDrop(event,'${id}')">
+    <div class="ui">📂</div><h3>Click or drag & drop</h3><p>${hint||'Supports common image formats'}</p></div>
+  <input type="file" id="${id}" accept="${accept||'image/*'}" style="display:none" onchange="${fn}(event)">
+  <div class="pw" id="pw_${id}"><div class="pl">Processing…</div><div class="pb"><div class="pf" id="pf_${id}"></div></div></div>
+  <div class="rb" id="res_${id}"></div>`;
+}
+function gDrop(e,iid){e.preventDefault();e.currentTarget.classList.remove('dv');const f=e.dataTransfer.files[0];if(!f)return;const inp=document.getElementById(iid);const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}
+
+// ── Tool Router ──
+const TCFG={
+  reduceKB:{icon:'🗜️',title:'Reduce Image Size in KB',sub:'Compress to exact target KB — fully in browser.',
+    html:`<div class="sg" style="margin-bottom:12px"><div class="fg"><label>Target Size (KB)</label><input type="number" id="tkb" value="100" min="5" max="5000"></div><div class="fg"><label>Output Format</label><select id="rfmt"><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option><option value="image/webp">WEBP</option></select></div></div>`+uiHTML('fr','image/*','reduceKBP','Upload JPG, PNG or WEBP')},
+  resizePx:{icon:'📐',title:'Resize Image by Pixel',sub:'Resize to exact pixel dimensions.',
+    html:`<div class="sg" style="margin-bottom:12px"><div class="fg"><label>Width (px)</label><input type="number" id="rW" value="800" min="1"></div><div class="fg"><label>Height (px)</label><input type="number" id="rH" value="600" min="1"></div><div class="fg"><label>Keep Ratio</label><select id="rK"><option value="1">Yes</option><option value="0">No</option></select></div></div>`+uiHTML('fp','image/*','resizePxP','Upload any image')},
+  increaseKB:{icon:'📈',title:'Increase Image Size in KB',sub:'Increase file size to meet minimum requirements.',
+    html:`<div class="sg" style="margin-bottom:12px"><div class="fg"><label>Target Size (KB)</label><input type="number" id="ikb" value="500" min="10" max="10000"></div></div>`+uiHTML('fi','image/*','increaseKBP','Upload JPG or PNG')},
+  enhance:{icon:'✨',title:'AI Photo Enhancer',sub:'Sharpen, brighten & enhance using canvas filters.',
+    html:`<div class="sg" style="margin-bottom:12px"><div class="fg"><label>Sharpness (0-5)</label><input type="range" id="eS" min="0" max="5" value="2"></div><div class="fg"><label>Brightness (%)</label><input type="range" id="eB" min="80" max="150" value="105"></div><div class="fg"><label>Contrast (%)</label><input type="range" id="eC" min="80" max="150" value="110"></div></div>`+uiHTML('fe','image/*','enhanceP','Upload JPG or PNG')},
+  signature:{icon:'✍️',title:'Generate Signature',sub:'Draw your signature and download as PNG.',
+    html:`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:4px;margin-bottom:11px;"><canvas id="SC" width="660" height="190" style="background:#fff;border-radius:7px;cursor:crosshair;max-width:100%;display:block;touch-action:none;"></canvas></div><div class="sg"><div class="fg"><label>Pen Color</label><input type="color" id="sigC" value="#000000" style="width:100%;height:34px;border:1px solid var(--border);border-radius:7px;background:none;cursor:pointer;padding:2px;"></div><div class="fg"><label>Pen Size</label><input type="range" id="sigZ" min="1" max="12" value="3"></div></div><div class="br"><button class="btn ba" onclick="sigDL()">⬇️ Download PNG</button><button class="btn bo" onclick="sigCL()">🗑️ Clear</button></div>`,
+    init:()=>setTimeout(initSig,80)},
+  resizeCm:{icon:'📏',title:'Resize Image in Centimeters',sub:'Set dimensions in centimeters at chosen DPI.',
+    html:`<div class="sg" style="margin-bottom:12px"><div class="fg"><label>Width (cm)</label><input type="number" id="cW" value="10" step="0.1" min="0.1"></div><div class="fg"><label>Height (cm)</label><input type="number" id="cH" value="15" step="0.1" min="0.1"></div><div class="fg"><label>DPI</label><select id="cD"><option value="72">72</option><option value="96">96</option><option value="150">150</option><option value="300" selected>300</option><option value="600">600</option></select></div></div>`+uiHTML('fc','image/*','resizeCmP','Upload any image')},
+  r3545:{icon:'🪪',title:'Resize to 3.5×4.5 cm (300 DPI)',sub:'Standard Indian passport photo — 413×531px.',html:uiHTML('f3545','image/*','r3545P','Upload your photo')},
+  r35mm:{icon:'📐',title:'Resize to 35×45 mm',sub:'UK/EU international passport photo.',html:uiHTML('f35mm','image/*','r35mmP','Upload your photo')},
+  r2x2:{icon:'🇺🇸',title:'Resize to 2×2 Inch (US Passport)',sub:'600×600px at 300 DPI.',html:uiHTML('f2x2','image/*','r2x2P','Upload your photo')},
+  r4x6:{icon:'🖼️',title:'Resize to 4×6 Inch',sub:'1200×1800px standard print.',html:uiHTML('f4x6','image/*','r4x6P','Upload your photo')},
+  r600:{icon:'🟦',title:'Resize to 600×600 Pixels',sub:'Square photo for digital ID portals.',html:uiHTML('f600','image/*','r600P','Upload your photo')},
+  img2pdf:{icon:'🖼️',title:'Image to PDF',sub:'Convert any image to a PDF file.',html:uiHTML('fi2p','image/*','img2pdfP','Upload JPG, PNG or WEBP')},
+  pdf2jpg:{icon:'📑',title:'PDF to JPG',sub:'Extract each PDF page as JPG. Powered by PDF.js.',html:uiHTML('fp2j','.pdf','pdf2jpgP','Upload a PDF file')},
+  j2p50:{icon:'⚡',title:'JPG to PDF (≤50KB)',sub:'Compress & convert to PDF under 50KB.',html:uiHTML('fj50','image/*','j2pP50','Upload JPG')},
+  j2p100:{icon:'📉',title:'JPG to PDF (≤100KB)',sub:'Compress & convert to PDF under 100KB.',html:uiHTML('fj100','image/*','j2pP100','Upload JPG')},
+  j2p300:{icon:'🗜️',title:'JPG to PDF (≤300KB)',sub:'Compress & convert to PDF under 300KB.',html:uiHTML('fj300','image/*','j2pP300','Upload JPG')},
+  j2p500:{icon:'💾',title:'JPG to PDF (≤500KB)',sub:'Good quality PDF under 500KB.',html:uiHTML('fj500','image/*','j2pP500','Upload JPG')},
+  img2jpg:{icon:'🖼️',title:'Image to JPG',sub:'Convert PNG, WEBP, BMP to JPG.',html:uiHTML('fi2j','image/*','toJpgP','Upload any image')},
+  webp2jpg:{icon:'🌐',title:'WEBP to JPG',sub:'Convert WEBP to JPG.',html:uiHTML('fw2j','.webp,image/*','toJpgP','Upload WEBP file')},
+  jpeg2png:{icon:'🎨',title:'JPEG to PNG',sub:'Convert JPEG to lossless PNG.',html:uiHTML('fj2p2','image/*','toPngP','Upload JPEG image')},
+  png2jpeg:{icon:'🔃',title:'PNG to JPEG',sub:'Convert PNG to JPEG.',html:uiHTML('fp2j2','.png,image/*','toJpgP','Upload PNG file')},
+  ocr:{icon:'🔤',title:'OCR – Image to Text',sub:'Extract text using Tesseract.js (20–30s first run).',html:uiHTML('focr','image/*','ocrP','Upload JPG, PNG or WEBP')},
+  jpg2text:{icon:'📝',title:'JPG to Text',sub:'Extract text from JPG.',html:uiHTML('fj2t','image/*','ocrP','Upload JPG image')},
+  png2text:{icon:'📋',title:'PNG to Text',sub:'Extract text from PNG.',html:uiHTML('fp2t','.png,image/*','ocrP','Upload PNG image')},
+};
+
+function oT(id){if(id==='passport'){oPP();return;}const c=TCFG[id];if(!c)return;document.getElementById('TMH').textContent=c.icon+' '+c.title;document.getElementById('TMS').textContent=c.sub;document.getElementById('TMB').innerHTML=c.html;document.getElementById('TM').classList.add('open');c.init&&c.init();}
+function cT(){document.getElementById('TM').classList.remove('open');}
+document.getElementById('TM').addEventListener('click',function(e){if(e.target===this)cT();});
+
+// ── PROCESSORS ──
+
+async function reduceKBP(e){
+  const file=e.target.files[0];if(!file)return;
+  const id='fr',tKB=parseInt(document.getElementById('tkb').value)||100,fmt=document.getElementById('rfmt').value;
+  shPW(id,10,'Compressing…');
+  try{
+    const opts={maxSizeMB:tKB/1024,fileType:fmt,useWebWorker:true,onProgress:p=>shPW(id,p,'Compressing… '+p+'%')};
+    const out=await imageCompression(file,opts);
+    hiPW(id);
+    const url=URL.createObjectURL(out);window._bl=out;
+    shR(id,`✅ <b>${(out.size/1024).toFixed(1)} KB</b> (was ${(file.size/1024).toFixed(1)} KB)<br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._bl,'compressed.jpg')">⬇️ Download</button>`);
+  }catch(err){hiPW(id);shR(id,'❌ '+err.message);}
+}
+
+async function resizePxP(e){
+  const file=e.target.files[0];if(!file)return;const id='fp';
+  shPW(id,30,'Resizing…');
+  const img=await rFI(file);
+  let w=parseInt(document.getElementById('rW').value),h=parseInt(document.getElementById('rH').value);
+  if(document.getElementById('rK').value==='1')h=Math.round(w*(img.naturalHeight/img.naturalWidth));
+  const c=i2c(img,w,h);const b=await c2b(c,'image/jpeg',0.95);hiPW(id);
+  const url=URL.createObjectURL(b);window._rb=b;
+  shR(id,`✅ Resized to <b>${w}×${h}px</b> · ${(b.size/1024).toFixed(1)} KB<br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._rb,'resized.jpg')">⬇️ Download</button>`);
+}
+
+async function increaseKBP(e){
+  const file=e.target.files[0];if(!file)return;const id='fi';
+  const tKB=parseInt(document.getElementById('ikb').value)||500;
+  shPW(id,10,'Upscaling…');
+  const img=await rFI(file);let sc=1,b,tries=0;
+  do{sc+=0.25;tries++;const c=i2c(img,Math.round(img.naturalWidth*sc),Math.round(img.naturalHeight*sc));b=await c2b(c,'image/jpeg',0.99);shPW(id,Math.min(90,tries*12),'Size: '+(b.size/1024).toFixed(0)+'KB…');}
+  while(b.size/1024<tKB&&tries<25);
+  hiPW(id);const url=URL.createObjectURL(b);window._ib=b;
+  shR(id,`✅ New size: <b>${(b.size/1024).toFixed(1)} KB</b><br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._ib,'increased.jpg')">⬇️ Download</button>`);
+}
+
+async function enhanceP(e){
+  const file=e.target.files[0];if(!file)return;const id='fe';
+  shPW(id,30,'Enhancing…');
+  const img=await rFI(file);
+  const br=document.getElementById('eB').value,ct=document.getElementById('eC').value,sh=parseInt(document.getElementById('eS').value);
+  const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
+  const ctx=c.getContext('2d');ctx.filter=`brightness(${br}%) contrast(${ct}%)`;ctx.drawImage(img,0,0);ctx.filter='none';
+  if(sh>0){const id2=ctx.getImageData(0,0,c.width,c.height);cnv(id2,[0,-1,0,-1,4+sh*1.5,-1,0,-1,0],c.width,c.height);ctx.putImageData(id2,0,0);}
+  const b=await c2b(c,'image/jpeg',0.95);hiPW(id);
+  const url=URL.createObjectURL(b);window._eb=b;
+  shR(id,`✅ Enhanced · <b>${(b.size/1024).toFixed(1)} KB</b><br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._eb,'enhanced.jpg')">⬇️ Download</button>`);
+}
+function cnv(imd,k,w,h){const s=new Uint8ClampedArray(imd.data),d=imd.data;for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){let r=0,g=0,b=0;for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++){const p=((y+ky-1)*w+(x+kx-1))*4,v=k[ky*3+kx];r+=s[p]*v;g+=s[p+1]*v;b+=s[p+2]*v;}const i=(y*w+x)*4;d[i]=Math.min(255,Math.max(0,r));d[i+1]=Math.min(255,Math.max(0,g));d[i+2]=Math.min(255,Math.max(0,b));}}
+
+async function resizeCmP(e){
+  const file=e.target.files[0];if(!file)return;const id='fc';
+  shPW(id,30,'Resizing…');
+  const img=await rFI(file);const dpi=parseInt(document.getElementById('cD').value);
+  const w=Math.round(parseFloat(document.getElementById('cW').value)/2.54*dpi);
+  const h=Math.round(parseFloat(document.getElementById('cH').value)/2.54*dpi);
+  const b=await c2b(i2c(img,w,h),'image/jpeg',0.95);hiPW(id);
+  const url=URL.createObjectURL(b);window._cmb=b;
+  shR(id,`✅ <b>${w}×${h}px</b> at ${dpi}DPI · ${(b.size/1024).toFixed(1)} KB<br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._cmb,'resized_cm.jpg')">⬇️ Download</button>`);
+}
+
+async function fixResize(file,fid,w,h,lbl){
+  shPW(fid,40,'Resizing to '+lbl+'…');
+  const img=await rFI(file);const b=await c2b(i2c(img,w,h),'image/jpeg',0.95);hiPW(fid);
+  const url=URL.createObjectURL(b);window._fx=b;
+  shR(fid,`✅ Resized to <b>${w}×${h}px</b> (${lbl}) · ${(b.size/1024).toFixed(1)} KB<br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._fx,'${lbl}.jpg')">⬇️ Download</button>`);
+}
+async function r3545P(e){await fixResize(e.target.files[0],'f3545',413,531,'3.5x4.5cm');}
+async function r35mmP(e){await fixResize(e.target.files[0],'f35mm',413,531,'35x45mm');}
+async function r2x2P(e){await fixResize(e.target.files[0],'f2x2',600,600,'2x2inch');}
+async function r4x6P(e){await fixResize(e.target.files[0],'f4x6',1200,1800,'4x6inch');}
+async function r600P(e){await fixResize(e.target.files[0],'f600',600,600,'600x600px');}
+
+async function img2pdfP(e){
+  const file=e.target.files[0];if(!file)return;const id='fi2p';
+  shPW(id,20,'Creating PDF…');
+  const img=await rFI(file);const{jsPDF}=window.jspdf;
+  const pdf=new jsPDF({orientation:img.naturalWidth>img.naturalHeight?'l':'p',unit:'px',format:[img.naturalWidth,img.naturalHeight]});
+  pdf.addImage(i2c(img).toDataURL('image/jpeg',0.95),'JPEG',0,0,img.naturalWidth,img.naturalHeight);
+  shPW(id,90,'Saving…');const pb=pdf.output('blob');hiPW(id);window._pdfb=pb;
+  shR(id,`✅ PDF created · <b>${(pb.size/1024).toFixed(1)} KB</b><br><button class="btn ba" style="margin-top:8px" onclick="dlB(window._pdfb,'image.pdf')">⬇️ Download PDF</button>`);
+}
+
+async function j2pSize(file,fid,tKB){
+  shPW(fid,10,'Compressing…');
+  try{
+    const opts={maxSizeMB:Math.max(0.01,(tKB*0.75)/1024),useWebWorker:true,fileType:'image/jpeg',onProgress:p=>shPW(fid,Math.round(p*0.7),'Compressing '+p+'%')};
+    const cmp=await imageCompression(file,opts);
+    shPW(fid,80,'Building PDF…');
+    const img=await rFI(cmp);const{jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:img.naturalWidth>img.naturalHeight?'l':'p',unit:'px',format:[img.naturalWidth,img.naturalHeight]});
+    pdf.addImage(i2c(img).toDataURL('image/jpeg',0.85),'JPEG',0,0,img.naturalWidth,img.naturalHeight);
+    const pb=pdf.output('blob');hiPW(fid);window._szpdf=pb;
+    shR(fid,`✅ PDF: <b>${(pb.size/1024).toFixed(1)} KB</b> (target ≤${tKB}KB)<br><button class="btn ba" style="margin-top:8px" onclick="dlB(window._szpdf,'output.pdf')">⬇️ Download PDF</button>`);
+  }catch(err){hiPW(fid);shR(fid,'❌ '+err.message);}
+}
+async function j2pP50(e){await j2pSize(e.target.files[0],'fj50',50);}
+async function j2pP100(e){await j2pSize(e.target.files[0],'fj100',100);}
+async function j2pP300(e){await j2pSize(e.target.files[0],'fj300',300);}
+async function j2pP500(e){await j2pSize(e.target.files[0],'fj500',500);}
+
+async function pdf2jpgP(e){
+  const file=e.target.files[0];if(!file)return;const id='fp2j';
+  shPW(id,5,'Loading PDF…');
+  try{
+    const ab=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    const n=pdf.numPages;let html='';window._pdfJpgs=[];
+    for(let p=1;p<=n;p++){
+      shPW(id,Math.round((p/n)*90),'Rendering page '+p+'/'+n+'…');
+      const pg=await pdf.getPage(p);const vp=pg.getViewport({scale:2});
+      const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+      await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+      const b=await c2b(c,'image/jpeg',0.92);const url=URL.createObjectURL(b);
+      window._pdfJpgs.push({b,url});
+      html+=`<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Page ${p}</div><img src="${url}" class="ri" style="max-height:180px;width:auto"><br><button class="btn bo" style="margin-top:4px;font-size:11px;padding:5px 12px" onclick="dlB(window._pdfJpgs[${p-1}].b,'page_${p}.jpg')">⬇️ Download</button></div>`;
+    }
+    hiPW(id);shR(id,`✅ <b>${n} page(s)</b> extracted:<br>${html}`);
+  }catch(err){hiPW(id);shR(id,'❌ '+err.message);}
+}
+
+async function toJpgP(e){
+  const file=e.target.files[0];if(!file)return;const id=e.target.id;
+  shPW(id,40,'Converting…');
+  const img=await rFI(file);const b=await c2b(i2c(img),'image/jpeg',0.95);hiPW(id);
+  const url=URL.createObjectURL(b);window._cjpg=b;
+  shR(id,`✅ Converted to JPG · <b>${(b.size/1024).toFixed(1)} KB</b><br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._cjpg,'converted.jpg')">⬇️ Download JPG</button>`);
+}
+async function toPngP(e){
+  const file=e.target.files[0];if(!file)return;const id=e.target.id;
+  shPW(id,40,'Converting…');
+  const img=await rFI(file);const b=await c2b(i2c(img),'image/png');hiPW(id);
+  const url=URL.createObjectURL(b);window._cpng=b;
+  shR(id,`✅ Converted to PNG · <b>${(b.size/1024).toFixed(1)} KB</b><br><img src="${url}" class="ri"><br><button class="btn ba" style="margin-top:7px" onclick="dlB(window._cpng,'converted.png')">⬇️ Download PNG</button>`);
+}
+
+async function ocrP(e){
+  const file=e.target.files[0];if(!file)return;const id=e.target.id;
+  shPW(id,5,'Loading Tesseract…');
+  try{
+    const worker=await Tesseract.createWorker('eng',1,{logger:m=>{if(m.status==='recognizing text')shPW(id,Math.round(m.progress*100),'Recognizing… '+Math.round(m.progress*100)+'%');}});
+    const url=URL.createObjectURL(file);const{data:{text}}=await worker.recognize(url);await worker.terminate();
+    hiPW(id);
+    shR(id,`✅ Text extracted:<br><textarea style="width:100%;min-height:130px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:9px;font-size:13px;margin-top:7px;resize:vertical;font-family:'DM Sans',sans-serif">${text.trim()||'No text found.'}</textarea><br><button class="btn ba" style="margin-top:7px" onclick="navigator.clipboard.writeText(document.querySelector('textarea').value).then(()=>alert('Copied!'))">📋 Copy Text</button>`);
+  }catch(err){hiPW(id);shR(id,'❌ OCR Error: '+err.message);}
+}
+
+// ── SIGNATURE ──
+let sigDrw=false,sigLast={};
+function initSig(){
+  const c=document.getElementById('SC');if(!c)return;
+  const ctx=c.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';
+  function gp(e){const r=c.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)};}
+  c.onmousedown=e=>{sigDrw=true;sigLast=gp(e);};
+  c.ontouchstart=e=>{e.preventDefault();sigDrw=true;sigLast=gp(e);};
+  c.onmousemove=c.ontouchmove=e=>{
+    if(!sigDrw)return;if(e.cancelable)e.preventDefault();
+    const p=gp(e);ctx.beginPath();ctx.strokeStyle=document.getElementById('sigC').value;ctx.lineWidth=parseInt(document.getElementById('sigZ').value);ctx.moveTo(sigLast.x,sigLast.y);ctx.lineTo(p.x,p.y);ctx.stroke();sigLast=p;};
+  c.onmouseup=c.ontouchend=()=>sigDrw=false;
+}
+function sigDL(){const c=document.getElementById('SC');const a=document.createElement('a');a.download='signature.png';a.href=c.toDataURL('image/png');a.click();}
+function sigCL(){const c=document.getElementById('SC');c.getContext('2d').clearRect(0,0,c.width,c.height);}
+
+// ── PASSPORT TOOL ──
+let pI=null,pCr=null,pBG='#ffffff',pBR=false;
+function oPP(){pReset();document.getElementById('PM').classList.add('open');}
+function cP(){document.getElementById('PM').classList.remove('open');}
+document.getElementById('PM').addEventListener('click',function(e){if(e.target===this)cP();});
+function pSt(n){[1,2,3,4].forEach(i=>document.getElementById('ps'+i).classList.toggle('on',i<=n));}
+function pSh(id,step){['pU','pC','pB','pS'].forEach(s=>document.getElementById(s).style.display=s===id?'block':'none');pSt(step);}
+function pReset(){pI=null;pCr=null;pCrOrig=null;pCrBGR=null;pBR=false;pBG='#ffffff';document.getElementById('pFI').value='';document.getElementById('BGT').checked=false;pUT(false);pSh('pU',1);}
+function pDrop(e){e.preventDefault();document.getElementById('pDZ').classList.remove('dv');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))pLF(f);}
+function pLoad(e){const f=e.target.files[0];if(f)pLF(f);}
+function pLF(file){const r=new FileReader();r.onload=ev=>{pI=new Image();pI.onload=()=>{pIC();pSh('pC',2);};pI.src=ev.target.result;};r.readAsDataURL(file);}
+
+// Crop
+let cS={};
+function pIC(){
+  const c=document.getElementById('CC');const mW=Math.min(660,window.innerWidth-70);
+  const sc=Math.min(mW/pI.naturalWidth,440/pI.naturalHeight,1);
+  c.width=pI.naturalWidth*sc;c.height=pI.naturalHeight*sc;
+  cS={sc,iw:c.width,ih:c.height,drag:false,h:'',box:{x:c.width*.08,y:c.height*.04,w:c.width*.84,h:c.height*.92}};
+  pDC();
+  c.onmousedown=pCD;c.onmousemove=pCM;c.onmouseup=()=>cS.drag=false;
+  c.ontouchstart=e=>{e.preventDefault();pCD(e.touches[0]);};
+  c.ontouchmove=e=>{e.preventDefault();pCM(e.touches[0]);};
+  c.ontouchend=()=>cS.drag=false;
+}
+function pDC(){
+  const c=document.getElementById('CC'),ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(pI,0,0,c.width,c.height);
+  const b=cS.box;
+  ctx.fillStyle='rgba(0,0,0,.52)';
+  ctx.fillRect(0,0,c.width,b.y);ctx.fillRect(0,b.y+b.h,c.width,c.height-b.y-b.h);
+  ctx.fillRect(0,b.y,b.x,b.h);ctx.fillRect(b.x+b.w,b.y,c.width-b.x-b.w,b.h);
+  ctx.strokeStyle='#e8ff47';ctx.lineWidth=2;ctx.setLineDash([]);ctx.strokeRect(b.x,b.y,b.w,b.h);
+  ctx.strokeStyle='rgba(232,255,71,.18)';ctx.lineWidth=1;ctx.beginPath();
+  [1/3,2/3].forEach(f=>{ctx.moveTo(b.x+b.w*f,b.y);ctx.lineTo(b.x+b.w*f,b.y+b.h);ctx.moveTo(b.x,b.y+b.h*f);ctx.lineTo(b.x+b.w,b.y+b.h*f);});ctx.stroke();
+  ctx.fillStyle='#e8ff47';
+  [[b.x,b.y],[b.x+b.w/2,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h/2],[b.x+b.w,b.y+b.h/2],[b.x,b.y+b.h],[b.x+b.w/2,b.y+b.h],[b.x+b.w,b.y+b.h]].forEach(([hx,hy])=>ctx.fillRect(hx-5,hy-5,10,10));
+}
+function pGH(mx,my){const b=cS.box,hs=13,pts={tl:[b.x,b.y],tc:[b.x+b.w/2,b.y],tr:[b.x+b.w,b.y],ml:[b.x,b.y+b.h/2],mr:[b.x+b.w,b.y+b.h/2],bl:[b.x,b.y+b.h],bc:[b.x+b.w/2,b.y+b.h],br:[b.x+b.w,b.y+b.h]};for(const[n,[px,py]]of Object.entries(pts))if(Math.abs(mx-px)<hs&&Math.abs(my-py)<hs)return n;if(mx>b.x&&mx<b.x+b.w&&my>b.y&&my<b.y+b.h)return'move';return'';}
+function pCXY(e){const r=document.getElementById('CC').getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function pCD(e){const{x,y}=pCXY(e);const h=pGH(x,y);if(!h)return;cS.drag=true;cS.h=h;cS.sx=x;cS.sy=y;cS.sb={...cS.box};}
+function pCM(e){
+  if(!cS.drag)return;const{x,y}=pCXY(e);const dx=x-cS.sx,dy=y-cS.sy,sb=cS.sb,mn=28;let b={...sb};
+  if(cS.h==='move'){b.x=Math.max(0,Math.min(cS.iw-b.w,sb.x+dx));b.y=Math.max(0,Math.min(cS.ih-b.h,sb.y+dy));}
+  else{if(cS.h.includes('r'))b.w=Math.max(mn,sb.w+dx);if(cS.h.includes('l')){b.x=Math.min(sb.x+sb.w-mn,sb.x+dx);b.w=sb.w-dx;}if(cS.h.includes('b'))b.h=Math.max(mn,sb.h+dy);if(cS.h.includes('t')){b.y=Math.min(sb.y+sb.h-mn,sb.y+dy);b.h=sb.h-dy;}b.x=Math.max(0,b.x);b.y=Math.max(0,b.y);if(b.x+b.w>cS.iw)b.w=cS.iw-b.x;if(b.y+b.h>cS.ih)b.h=cS.ih-b.y;}
+  cS.box=b;pDC();
+}
+function pAC(){
+  const b=cS.box,sc=cS.sc;const tmp=document.createElement('canvas');tmp.width=b.w/sc;tmp.height=b.h/sc;
+  tmp.getContext('2d').drawImage(pI,b.x/sc,b.y/sc,b.w/sc,b.h/sc,0,0,tmp.width,tmp.height);
+  pCr=tmp;pCrOrig=tmp;pCrBGR=null; // reset cache
+  pBR=false;document.getElementById('BGT').checked=false;pUT(false);pRP();pSh('pB',3);
+}
+
+// Background
+// pCrOrig = original cropped canvas (never modified)
+// pCrBGR  = cached bg-removed canvas (reused when color changes)
+let pCrOrig=null, pCrBGR=null;
+
+function pRP(){
+  const src=pCrOrig;if(!src)return;
+  const c=document.getElementById('BC');
+  const mW=Math.min(230,window.innerWidth-90);
+  c.width=mW;c.height=Math.round(mW*src.height/src.width);
+  const ctx=c.getContext('2d');
+  // Always fill background color first
+  ctx.fillStyle=pBG;
+  ctx.fillRect(0,0,c.width,c.height);
+  if(pBR){
+    // Draw bg-removed version (subject only) over colored background
+    if(!pCrBGR) pCrBGR=pMakeBGR(src);
+    ctx.drawImage(pCrBGR,0,0,c.width,c.height);
+  } else {
+    ctx.drawImage(src,0,0,c.width,c.height);
+  }
+}
+
+// Returns a canvas where background pixels are transparent
+function pMakeBGR(src){
+  const w=src.width,h=src.height;
+  const tmp=document.createElement('canvas');tmp.width=w;tmp.height=h;
+  const ctx=tmp.getContext('2d');ctx.drawImage(src,0,0);
+  const id=ctx.getImageData(0,0,w,h),d=id.data;
+  // Sample more corner points for better bg detection
+  function px(x,y){const i=(y*w+x)*4;return[d[i],d[i+1],d[i+2]];}
+  const samples=[
+    px(0,0),px(w-1,0),px(0,h-1),px(w-1,h-1),
+    px(Math.floor(w/2),0),px(0,Math.floor(h/2)),px(w-1,Math.floor(h/2)),px(Math.floor(w/2),h-1)
+  ];
+  const bR=samples.reduce((s,c)=>s+c[0],0)/samples.length;
+  const bG=samples.reduce((s,c)=>s+c[1],0)/samples.length;
+  const bB=samples.reduce((s,c)=>s+c[2],0)/samples.length;
+  const tol=55;
+  for(let i=0;i<d.length;i+=4){
+    const dr=d[i]-bR,dg=d[i+1]-bG,db=d[i+2]-bB;
+    if(Math.sqrt(dr*dr+dg*dg+db*db)<tol) d[i+3]=0; // make transparent
+  }
+  ctx.putImageData(id,0,0);return tmp;
+}
+
+// Final photo = bg color fill + subject on top
+function pGFP(){
+  const src=pCrOrig;
+  const tmp=document.createElement('canvas');tmp.width=src.width;tmp.height=src.height;
+  const ctx=tmp.getContext('2d');
+  ctx.fillStyle=pBG;ctx.fillRect(0,0,tmp.width,tmp.height);
+  if(pBR){
+    if(!pCrBGR) pCrBGR=pMakeBGR(src);
+    ctx.drawImage(pCrBGR,0,0);
+  } else {
+    ctx.drawImage(src,0,0);
+  }
+  return tmp;
+}
+
+function pTBG(){
+  const on=document.getElementById('BGT').checked;
+  pUT(on);
+  if(on){
+    document.getElementById('BGS').style.display='block';
+    setTimeout(()=>{
+      pBR=true;
+      pCrBGR=pMakeBGR(pCrOrig); // compute once
+      document.getElementById('BGS').style.display='none';
+      pRP();
+    },600);
+  } else {
+    pBR=false;
+    pRP();
+  }
+}
+function pUT(on){
+  document.getElementById('TS').style.background=on?'var(--accent)':'var(--border)';
+  document.getElementById('TK').style.left=on?'19px':'3px';
+  document.getElementById('TK').style.background=on?'#000':'#fff';
+}
+function pSBG(color,el){
+  pBG=color;
+  document.querySelectorAll('.cs').forEach(s=>s.classList.remove('ca'));
+  if(el)el.classList.add('ca');
+  document.getElementById('CBC').value=color;
+  pRP(); // re-render preview with new bg color
+}
+function pGS(){pSh('pS',4);pGP();}
+
+// ── PRINT PREVIEW: real mm-based passport photo sizes ──
+// Photo sizes in mm
+const PHOTO_SIZES={
+  '3.5x4.5cm':{w:35,h:45},
+  '35x45mm':{w:35,h:45},
+  '2x2inch':{w:50.8,h:50.8},
+  '3x4inch':{w:76.2,h:101.6},
+};
+// Paper sizes in mm
+const PAPER_SIZES={
+  'A4':{w:210,h:297},
+  '4x6':{w:152.4,h:101.6},
+  '5x7':{w:127,h:177.8},
+  'letter':{w:215.9,h:279.4},
+  'A5':{w:148,h:210},
+};
+const MM_TO_PX=3.7795; // 1mm = 3.7795px at 96dpi for canvas preview
+
+function pGP(){
+  if(!pCrOrig)return;
+  const fp=pGFP();
+  const psz=PHOTO_SIZES[document.getElementById('PSZ').value]||{w:35,h:45};
+  const ppr=PAPER_SIZES[document.getElementById('PPR').value]||{w:210,h:297};
+  const copies=parseInt(document.getElementById('PC').value);
+
+  // Canvas px = mm * scale (use 3px per mm for good preview quality)
+  const SC=3.0;
+  const pw=Math.round(ppr.w*SC), ph=Math.round(ppr.h*SC);
+  const photoW=Math.round(psz.w*SC), photoH=Math.round(psz.h*SC);
+
+  // Fit as many columns as possible with 3mm gap
+  const gap=Math.round(3*SC);
+  const margin=Math.round(5*SC);
+  const cols=Math.floor((pw-margin*2+gap)/(photoW+gap));
+  const rows=Math.floor((ph-margin*2+gap)/(photoH+gap));
+  const actualCopies=Math.min(copies,cols*rows);
+
+  const c=document.getElementById('PVC');
+  c.width=pw;c.height=ph;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,pw,ph);
+
+  // Center the grid on the page
+  const gridW=cols*photoW+(cols-1)*gap;
+  const gridH=Math.ceil(actualCopies/cols)*photoH+(Math.ceil(actualCopies/cols)-1)*gap;
+  const startX=Math.round((pw-gridW)/2);
+  const startY=Math.round((ph-gridH)/2);
+
+  ctx.setLineDash([3,3]);ctx.strokeStyle='#aaa';ctx.lineWidth=1;
+
+  for(let i=0;i<actualCopies;i++){
+    const col=i%cols, row=Math.floor(i/cols);
+    const x=startX+col*(photoW+gap);
+    const y=startY+row*(photoH+gap);
+
+    // BG fill
+    ctx.fillStyle=pBG;ctx.fillRect(x,y,photoW,photoH);
+
+    // Draw photo cover-fit
+    const ia=fp.width/fp.height, ca=photoW/photoH;
+    let sx=0,sy=0,sw=fp.width,sh=fp.height;
+    if(ia>ca){sw=fp.height*ca;sx=(fp.width-sw)/2;}
+    else{sh=fp.width/ca;sy=(fp.height-sh)/2;}
+    ctx.save();ctx.beginPath();ctx.rect(x,y,photoW,photoH);ctx.clip();
+    ctx.drawImage(fp,sx,sy,sw,sh,x,y,photoW,photoH);
+    ctx.restore();
+
+    // Cut guide border
+    ctx.strokeRect(x,y,photoW,photoH);
+  }
+  ctx.setLineDash([]);
+
+  // Show info
+  const info=document.getElementById('previewInfo');
+  if(info) info.textContent=`${actualCopies} photos · ${psz.w}×${psz.h}mm each · ${ppr.w}×${ppr.h}mm paper`;
+
+  c.style.maxWidth='100%';
+}
+function pPrint(){
+  const c=document.getElementById('PVC');const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><title>Fynstra Print</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5;}img{max-width:100%}@media print{body{background:#fff;}img{width:100%}}</style></head><body><img src="${c.toDataURL('image/png')}" onload="window.print()"></body></html>`);
+  win.document.close();
+}
+function pDL(){const c=document.getElementById('PVC');const a=document.createElement('a');a.download='passport-photos.png';a.href=c.toDataURL('image/png');a.click();}
+
+// ── HAMBURGER MENU ──
+function toggleMobNav(){
+  const btn=document.getElementById('hamBtn');
+  const nav=document.getElementById('mobNav');
+  btn.classList.toggle('open');
+  nav.classList.toggle('open');
+}
+function closeMobNav(){
+  document.getElementById('hamBtn').classList.remove('open');
+  document.getElementById('mobNav').classList.remove('open');
+}
+</script>
+</body>
+</html>
